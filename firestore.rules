@@ -1,0 +1,108 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helper Functions ─────────────────────────────────────────────────────
+
+    // Check if user is authenticated (includes anonymous)
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if the requesting user owns the resource
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Check if user has a specific tier (stored in custom claims or Firestore)
+    function getUserTier() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tier;
+    }
+
+    function isVIP() {
+      return getUserTier() in ['VIP', 'DIAMOND', 'GOLD'];
+    }
+
+    // ─── Zones Collection ─────────────────────────────────────────────────────
+    // All authenticated users can read zone data
+    // Only backend service account can write (via Admin SDK — bypasses rules)
+    match /zones/{zoneId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Writes happen via Admin SDK only
+
+      // Zone crowd reports — fans can submit, all can read
+      match /reports/{reportId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated()
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.reportType in ['VERY_CROWDED', 'MODERATE', 'EMPTY', 'ALERT'];
+        allow update, delete: if false;
+      }
+    }
+
+    // ─── Users Collection ─────────────────────────────────────────────────────
+    match /users/{userId} {
+      // Users can read and update their own profile
+      allow read: if isAuthenticated() && isOwner(userId);
+      allow create: if isAuthenticated() && isOwner(userId);
+      allow update: if isAuthenticated() && isOwner(userId)
+        // Prevent self-promotion of tier — only backend can change tier
+        && !('tier' in request.resource.data.diff(resource.data).affectedKeys())
+        && !('points' in request.resource.data.diff(resource.data).affectedKeys());
+      allow delete: if false;
+
+      // Point history — read-only for owner, written by backend only
+      match /pointHistory/{transactionId} {
+        allow read: if isAuthenticated() && isOwner(userId);
+        allow write: if false;
+      }
+
+      // Intents — read-only for owner, written by backend AI service
+      match /intents/{intentId} {
+        allow read: if isAuthenticated() && isOwner(userId);
+        allow write: if false;
+      }
+
+      // In-app notifications — owner can read and update (mark as read)
+      match /notifications/{notifId} {
+        allow read: if isAuthenticated() && isOwner(userId);
+        allow update: if isAuthenticated() && isOwner(userId)
+          // Only allow updating the 'read' field
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+        allow create, delete: if false;
+      }
+    }
+
+    // ─── Events Collection ─────────────────────────────────────────────────────
+    match /events/{eventId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Backend only
+    }
+
+    // ─── Alerts Collection ─────────────────────────────────────────────────────
+    match /alerts/{alertId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Backend anomaly detector writes via Admin SDK
+    }
+
+    // ─── Routes Collection ─────────────────────────────────────────────────────
+    match /routes/{routeId} {
+      // Users can only read their own routes
+      allow read: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+      allow write: if false; // Backend routing engine writes via Admin SDK
+    }
+
+    // ─── Leaderboard (public read) ─────────────────────────────────────────────
+    match /leaderboard/{entry} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    // ─── Deny all other access ────────────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

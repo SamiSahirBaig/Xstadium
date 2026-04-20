@@ -1,0 +1,49 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "liveZones": {
+      "$venueId": {
+        "$zoneId": {
+          // Any authenticated user can read live zone data
+          ".read": "auth != null",
+          // Only service account (Admin SDK) can write — enforced by missing client rules
+          ".write": false,
+          ".validate": "newData.hasChildren(['currentOccupancy', 'pressureScore', 'trend', 'timestamp'])",
+          "currentOccupancy": {
+            ".validate": "newData.isNumber() && newData.val() >= 0"
+          },
+          "pressureScore": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100"
+          },
+          "trend": {
+            ".validate": "newData.isString() && newData.val().matches(/^(rising|falling|stable)$/)"
+          },
+          "timestamp": {
+            ".validate": "newData.isNumber()"
+          }
+        }
+      }
+    },
+
+    "simControl": {
+      // Demo panel writes event phase here; simulator reads it
+      "$venueId": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        "currentPhase": {
+          ".validate": "newData.isString() && newData.val().matches(/^(PRE_GAME|HALF_TIME|POST_GAME|EMERGENCY)$/)"
+        }
+      }
+    },
+
+    "presence": {
+      // Track online users per venue for real-time count
+      "$userId": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid == $userId"
+      }
+    }
+  }
+}
