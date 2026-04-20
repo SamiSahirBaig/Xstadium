@@ -5,8 +5,8 @@ import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
-// Import routes (to be created in subsequent issues)
-// import apiRoutes from './routes/index.js';
+// Import routes
+import apiRoutes from './routes/index.js';
 
 const app = express();
 
@@ -46,7 +46,7 @@ app.get('/health', (req, res) => {
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
 
-// app.use('/api', apiRoutes);
+app.use('/api', apiRoutes);
 
 // ─── Error Handling ───────────────────────────────────────────────────────────
 
