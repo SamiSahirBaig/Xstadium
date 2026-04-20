@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
+import compression from 'compression';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 // Import routes
@@ -13,6 +14,7 @@ const app = express();
 // ─── Middleware ───────────────────────────────────────────────────────────────
 
 app.use(helmet()); // Security headers
+app.use(compression()); // HTTP Payload zipping
 app.use(cors({
   origin: process.env.CORS_ORIGIN || '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],

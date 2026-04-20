@@ -7,6 +7,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 /* ─── Design Tokens ────────────────────────────────────────────────────────── */
+@property --color-accent {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #3b82f6;
+}
+
 :root {
   /* Background Layers */
   --color-bg:           #050b18;
@@ -21,6 +27,8 @@
   --color-accent:       #3b82f6;   /* Primary blue */
   --color-accent-2:     #8b5cf6;   /* Purple */
   --color-accent-glow:  rgba(59, 130, 246, 0.25);
+
+  transition: --color-accent 2s ease;
 
   /* Semantic Colors */
   --color-success:      #10b981;
@@ -441,3 +449,31 @@ input, textarea, select {
 .z-100        { z-index: 100; }
 .opacity-0    { opacity: 0; }
 .opacity-50   { opacity: 0.5; }
+
+/* ─── Accessibility Modes ─────────────────────────────────────────────────── */
+
+.a11y-high-contrast {
+  /* High contrast strictly forces grayscales maximizing visible differences */
+  filter: contrast(1.5) grayscale(1) !important;
+}
+
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://antigravity-storage.s3.amazonaws.com/fonts/OpenDyslexic-Regular.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+.a11y-dyslexic * {
+  /* Forces universal Dyslexic safe fonts bounding strict letter-spacing */
+  font-family: 'OpenDyslexic', sans-serif !important;
+  letter-spacing: 0.1em !important;
+}
+
+.a11y-reduced-motion * {
+  /* Enforces aggressive animation truncation preventing seizure issues */
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}

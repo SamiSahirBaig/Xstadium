@@ -5,10 +5,10 @@ import { useZoneStore } from '../../store/zoneStore.js';
 import styles from './BottomNav.module.css';
 
 const NAV_ITEMS = [
-  { to: '/map',       icon: Map,            label: 'Map' },
-  { to: '/assistant', icon: MessageSquare,  label: 'AI' },
-  { to: '/rewards',   icon: Trophy,         label: 'Rewards' },
-  { to: '/alerts',    icon: Bell,           label: 'Alerts',  showBadge: true },
+  { to: '/map',       icon: Map,            label: 'Map',     id: 'tour-heatmap' },
+  { to: '/assistant', icon: MessageSquare,  label: 'AI',      id: 'tour-assistant' },
+  { to: '/rewards',   icon: Trophy,         label: 'Rewards', id: 'tour-rewards' },
+  { to: '/alerts',    icon: Bell,           label: 'Alerts',  showBadge: true, id: 'tour-route' }, // Linking route logic here as overlay falls into map
   { to: '/profile',   icon: User,           label: 'Profile' },
 ];
 
@@ -18,10 +18,11 @@ export default function BottomNav() {
 
   return (
     <nav className={styles.nav}>
-      {NAV_ITEMS.map(({ to, icon: Icon, label, showBadge }) => (
+      {NAV_ITEMS.map(({ to, icon: Icon, label, showBadge, id }) => (
         <NavLink
           key={to}
           to={to}
+          id={id}
           className={({ isActive }) =>
             `${styles.item} ${isActive ? styles.active : ''}`
           }

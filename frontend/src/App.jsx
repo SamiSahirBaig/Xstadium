@@ -1,10 +1,15 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
+import { initWebSocket, disconnectWebSocket } from './services/websocketClient.js';
 import AppShell from './components/layout/AppShell.jsx';
 import PageLoader from './components/ui/PageLoader.jsx';
+import OfflineIndicator from './components/ui/OfflineIndicator.jsx';
 import { useUserStore } from './store/userStore.js';
 import { onAuthChange } from './config/firebase.js';
+import { initNotifications } from './services/notificationClient.js';
+import PresentationRunner from './components/ui/PresentationRunner.jsx';
+import TourGuide from './components/ui/TourGuide.jsx';
 
 // ─── Lazy-loaded Pages ────────────────────────────────────────────────────────
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage.jsx'));
@@ -24,51 +29,71 @@ function RequireAuth({ children }) {
   return children;
 }
 
+// ─── Animated Routes ──────────────────────────────────────────────────────────
+function AnimatedRoutes() {
+  const location = useLocation();
+
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        {/* ── Onboarding (first visit, no shell) ── */}
+        <Route path="/" element={<OnboardingPage />} />
+
+        {/* ── Main App (with persistent shell) ── */}
+        <Route
+          element={
+            <RequireAuth>
+              <AppShell />
+            </RequireAuth>
+          }
+        >
+          <Route path="/map"       element={<MapPage />} />
+          <Route path="/assistant" element={<AssistantPage />} />
+          <Route path="/rewards"   element={<RewardsPage />} />
+          <Route path="/alerts"    element={<AlertsPage />} />
+          <Route path="/profile"   element={<ProfilePage />} />
+        </Route>
+
+        {/* ── Demo / Special Routes (no auth required) ── */}
+        <Route path="/demo"       element={<DemoPanel />} />
+        <Route path="/analytics"  element={<AnalyticsDashboard />} />
+        <Route path="/demo-entry" element={<OnboardingPage demoMode />} />
+
+        {/* ── Fallback ── */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AnimatePresence>
+  );
+}
+
 // ─── Root App ─────────────────────────────────────────────────────────────────
 export default function App() {
   const { setUser, setLoading } = useUserStore();
 
-  // Subscribe to Firebase auth state changes on mount
+  // Subscribe to Firebase auth state and WebSocket stream on mount
   useEffect(() => {
+    initWebSocket();
     const unsubscribe = onAuthChange((firebaseUser) => {
       setUser(firebaseUser);
       setLoading(false);
+      
+      if (firebaseUser) {
+        initNotifications(firebaseUser.uid);
+      }
     });
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      disconnectWebSocket();
+    };
   }, [setUser, setLoading]);
 
   return (
     <BrowserRouter>
+      <OfflineIndicator />
       <Suspense fallback={<PageLoader />}>
-        <AnimatePresence mode="wait">
-          <Routes>
-            {/* ── Onboarding (first visit, no shell) ── */}
-            <Route path="/" element={<OnboardingPage />} />
-
-            {/* ── Main App (with persistent shell) ── */}
-            <Route
-              element={
-                <RequireAuth>
-                  <AppShell />
-                </RequireAuth>
-              }
-            >
-              <Route path="/map"       element={<MapPage />} />
-              <Route path="/assistant" element={<AssistantPage />} />
-              <Route path="/rewards"   element={<RewardsPage />} />
-              <Route path="/alerts"    element={<AlertsPage />} />
-              <Route path="/profile"   element={<ProfilePage />} />
-            </Route>
-
-            {/* ── Demo / Special Routes (no auth required) ── */}
-            <Route path="/demo"       element={<DemoPanel />} />
-            <Route path="/analytics"  element={<AnalyticsDashboard />} />
-            <Route path="/demo-entry" element={<OnboardingPage demoMode />} />
-
-            {/* ── Fallback ── */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </AnimatePresence>
+        <AnimatedRoutes />
+        <PresentationRunner />
+        <TourGuide />
       </Suspense>
     </BrowserRouter>
   );

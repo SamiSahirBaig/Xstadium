@@ -58,6 +58,41 @@ export const useUserStore = create(
         return !!user;
       },
 
+      // ── API Actions ─────────────────────────────────────────────────────────
+      checkInToZone: async (targetZone, followedRoute = false) => {
+        const { user, profile } = get();
+        if (!user || !profile) return null;
+        
+        try {
+          const token = await user.getIdToken();
+          const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+          const res = await fetch(`${baseUrl}/api/users/check-in`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ currentZone: profile.currentZone || 'UNKNOWN', targetZone, followedRoute })
+          });
+          
+          if (!res.ok) throw new Error('Check-in Request Failed');
+          const data = await res.json();
+          
+          // Atomically modify the UI state matching Firebase explicitly
+          set(state => ({
+            profile: { 
+               ...state.profile, 
+               points: (state.profile.points || 0) + data.awardedPoints, 
+               currentZone: targetZone 
+            }
+          }));
+          return data;
+        } catch (err) {
+          console.error('[userStore] Check-in Mutation Error:', err);
+          return null;
+        }
+      },
+
       // ── Logout ──────────────────────────────────────────────────────────────
       clearUser: () => set({ user: null, profile: null, isLoading: false }),
     }),

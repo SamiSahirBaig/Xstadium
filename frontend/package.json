@@ -10,16 +10,22 @@
     "lint": "eslint src --ext .js,.jsx"
   },
   "dependencies": {
+    "@googlemaps/react-wrapper": "^1.1.35",
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^8.18.0",
+    "@tanstack/react-query": "^5.45.0",
     "firebase": "^10.12.0",
     "framer-motion": "^11.2.0",
     "lucide-react": "^0.395.0",
+    "qrcode.react": "^4.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.23.1",
+    "react-joyride": "^3.0.2",
     "react-markdown": "^9.0.1",
-    "zustand": "^4.5.2",
-    "@tanstack/react-query": "^5.45.0",
-    "@googlemaps/react-wrapper": "^1.1.35"
+    "react-router-dom": "^6.23.1",
+    "recharts": "^3.8.1",
+    "three": "^0.184.0",
+    "zustand": "^4.5.2"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.0",
